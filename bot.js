@@ -21,6 +21,8 @@ function IRCBot(host, port, secure, nick, channel) {
     this.nick = nick;
     this.channel = channel;
     this.client = null;
+    this._sentNick = false;
+    this._joinedChannel = false;
 }
 
 
@@ -34,11 +36,11 @@ IRCBot.prototype.connect = function connect() {
         this.client = net.connect(this.port, this.host, () => this.connected());
 
     this.client.on('data', data => this.processMessage(data));
-    this.client.on('end', (chunk) => {
-        console.log('-- Exiting');
-        server.close();
+    this.client.on('close', (had_error) => {
+        let error = had_error ? ' due to transmission error.' : '';
+        console.log(`-- Exiting${error}`);
     });
-}
+};
 
 
 /**
@@ -58,10 +60,33 @@ IRCBot.prototype.connected = function connected() {
 IRCBot.prototype.processMessage = function processMessage(data) {
     let message = data.toString();
     let lines = message.split('\r\n');
-    let formattedMessage = lines.join('\r\n<< ');
-    console.log(`<< ${formattedMessage}`);
-    let components = this._parseMessage(message);
-}
+    lines = lines.filter(line => line !== "");
+    for (let line of lines) {
+        console.log(`<< ${line}`);
+        let parsedMessage = this._parseMessage(line);
+        this.handleMessage(parsedMessage);
+    }
+};
+
+
+/**
+ * Processes a message received from the server.
+ * @param {Object} message - A message returned from parseMessage.
+ */
+IRCBot.prototype.handleMessage = function handleMessage(message) {
+    if (message.command === "NOTICE" && !this._sentNick) {
+        this.sendMessage(this.createMessage(null, "NICK", this.nick));
+        this.sendMessage(this.createMessage(null, "USER", `${this.nick} 0 * :nodebot`));
+        this._sentNick = true;
+    }
+    if (message.command === "001" && !this._joinedChannel) {
+        this.sendMessage(this.createMessage(null, "JOIN", this.channel));
+        this._joinedChannel = true;
+    }
+    if (message.command === "PING") {
+        this.sendMessage(this.createMessage(null, "PONG", message.params));
+    }
+};
 
 
 /**
@@ -84,7 +109,35 @@ IRCBot.prototype._parseMessage = function _parseMessage(message) {
         params = pieces.join(' ');
     }
     return {prefix, command, params};
-}
+};
+
+
+/**
+ * Creates a message ready to be sent to the server.
+ * @param {string} prefix - Optional prefix component of the message.
+ * @param {string} command - Required command component of the message.
+ * @param {string} params - Optional params component of the message.
+ * @return {string} A message ready to be sent.
+ */
+IRCBot.prototype.createMessage = function CreateMessage(prefix, command, params) {
+    prefix = prefix ? `${prefix} ` : '';
+    params = params ? ` ${params}` : '';
+    let message = `${prefix}${command}${params}\r\n`;
+    return message;
+};
+
+
+/**
+ * Sends a message to the IRC server.
+ * @param {string} message - A message to be sent to the IRC server.
+ */
+IRCBot.prototype.sendMessage = function sendMessage(message) {
+    let lines = message.split('\r\n');
+    lines = lines.filter(line => line !== "");
+    let formattedMessage = lines.join('\r\n>> ');
+    console.log(`>> ${formattedMessage}`);
+    this.client.write(message);
+};
 
 
 let bot = new IRCBot('irc.esper.net', 6697, true, 'nodebottest', '#channel');
