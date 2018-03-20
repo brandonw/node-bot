@@ -86,6 +86,33 @@ IRCBot.prototype.handleMessage = function handleMessage(message) {
     if (message.command === "PING") {
         this.sendMessage(this.createMessage(null, "PONG", message.params));
     }
+    if (message.command === "PRIVMSG") {
+        let args = message.params.split(' ');
+        let src = message.prefix.slice(1);
+        let dest = args.shift();
+        let cmd = args.shift().slice(1);
+        this.handlePrivateMessage(src, dest, cmd, args);
+    }
+};
+
+
+/**
+ * Handles a private message.
+ * @param {string} source - The IDENT the message originated from.
+ * @param {string} dest - The recipient of the message.
+ * @param {string} command - The command of the message. This is the token prior to the first
+ * @param {string} args - The command args of the message. This is the space delimited tokens
+ * following the first.
+ */
+IRCBot.prototype.handlePrivateMessage = function handlePrivateMessage(source, dest, command, args) {
+    if (dest == this.nick) {
+        // Private Message
+    } else if (dest == this.channel) {
+        // Public Message
+        if (command === "!QUIT") {
+            this.sendMessage(this.createMessage(null, "QUIT", args ? ':' + args.join(' ') : ''));
+        }
+    }
 };
 
 
@@ -140,5 +167,5 @@ IRCBot.prototype.sendMessage = function sendMessage(message) {
 };
 
 
-let bot = new IRCBot('irc.esper.net', 6697, true, 'nodebottest', '#channel');
+let bot = new IRCBot('irc.esper.net', 6697, true, 'nodebottest', '#botwars');
 bot.connect();
