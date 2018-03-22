@@ -8,10 +8,11 @@
     "jsdoc": "^3.5.5",
     "jshint": "^2.9.5",
     "mocha": "^5.0.4",
+    "nyc": "^11.6.0",
     "sinon": "^4.4.6"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "nyc mocha"
   },
   "repository": {
     "type": "git",
