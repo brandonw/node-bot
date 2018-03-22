@@ -41,10 +41,12 @@ describe('ircbot.IRCBot', function() {
                 on: sinon.spy()
             };
             this.netConnectStub.returns(client);
+            this.netConnectStub.callsArg(2);
 
             let bot = new ircbot.IRCBot('host', 123, false, 'nick', '#channel');
             bot.processMessage = sinon.spy();
             bot.connect();
+            assert.ok(this.consoleLogStub.calledWithExactly('-- Connected to host:123'));
 
             assert.ok(client.on.calledTwice);
             assert.equal(client.on.firstCall.args[0], 'data');
@@ -61,10 +63,12 @@ describe('ircbot.IRCBot', function() {
                 on: sinon.spy()
             };
             this.tlsConnectStub.returns(client);
+            this.tlsConnectStub.callsArg(2);
 
             let bot = new ircbot.IRCBot('host', 123, true, 'nick', '#channel');
             bot.processMessage = sinon.spy();
             bot.connect();
+            assert.ok(this.consoleLogStub.calledWithExactly('-- Securely connected to host:123'));
 
             assert.ok(client.on.calledTwice);
             assert.equal(client.on.firstCall.args[0], 'data');
